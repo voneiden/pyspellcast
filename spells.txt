@@ -1,0 +1,53 @@
+// Spells config file for servers.
+// d - digit
+// p - palm
+// s - snap
+// f - wiggle fingers
+// w - wave
+// C - calp
+// W - Wave both hands
+// S - Snap both hands
+// D - Digit both hands
+// P - Palm both hands
+Cdpw 		Dispel Magic
+Cswws 		Summon Elemental
+CW 		Magic Mirror
+dffdd		Lightning Bolt
+dfpw		Cure Heavy Wounds
+dfw		Cure Light Wounds
+dpp		Amnesia
+dsf		Confusion
+dsfffC		Disease
+dwffD		Blindness
+dwsssp		Delayed Effect
+dwwfwC		Raise Dead
+dwwfwd		Poison
+fff		Paralysis
+fpsfw		Summon Troll
+fssdd		Fireball
+p		Shield
+P		Surrender
+pdwp		Remove Enchantment
+ppWS		Invisibility
+psdd		Charm Monster
+psdf		Charm Person
+psfw		Summon Ogre
+pwpfsssd	Finger of Death
+pwpwwC		Haste
+sd		Missile
+sfw		Summon Goblin
+spf		Anti-Spell
+spfpsdw		Permanency
+sppC		Time Stop
+sswp		Resist Cold
+swd		Fear
+swwC		Fire Storm
+wddC		Lightning Bolt
+wfp		Cause Light Wounds
+wfpsfw		Summon Giant
+wpfd		Cause Heavy Wounds
+wpp		Counter-Spell
+wssC		Ice Storm
+wwfp		Resist Heat
+wwp		Protection From Evil
+wws		Counter-Spell
