@@ -40,6 +40,8 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
 from ScrolledText import ScrolledText
 
+import json
+
 class Window:
     def __init__(self):
         
@@ -137,7 +139,8 @@ class Window:
     def testPlayers(self):
         self.players = {'White mage':0,'Black mage':0}
         
-    def updatePlayers(self):
+    def updatePlayers(self,players):
+        # TODO: FIIXIXIXIXIXIIXIXXIIXII
         playerFrames = self.playerFrames[:]
         self.playerFrames = []
         
@@ -174,8 +177,81 @@ class Player:
     def remove(self):
         pass
         #grid_remove
+
+class Client(LineReceiver):
+    def __init__(self,window):
+        self.window   = window
+        #LineReceiver.__init__(self)
+
         
+    def connectionMade(self):
+        self.write("handshake pyspellcast 0.1 Matti")
+
+        
+        
+    def lineReceived(self, data):
+        data = data.decode('utf-8')
+        #print "lineReceived",data
+        if len(data) < 2: return
+        tok = data.split(' ')
+        hdr = tok[0]
+        
+        if hdr == 'updatePlayers':
+            print "Update players received"
+            parseplayers = " ".join(tok[1:]).split(';')
+            players = []
+            for player in parseplayers:
+                name,history = player.split(':')
+                players.append([name,json.loads(history)])
+            
+            print "Player list"
+            print players
+            self.window.updatePlayers(players)
+            
+        else:
+            print "Unknown packet"
+            print data
+    
+    
+    def connectionLost(self,reason):
+        pass
+
+    def write(self,data):
+        data = data+'\r\n'
+        data = data.encode('utf-8')
+        print "Writing",data
+        self.transport.write(data)
+        
+
+
+class CFactory(ReconnectingClientFactory):
+    def __init__(self,window):
+        self.window = window
+        #ReconnectingClientFactory.__init__(self)
+        
+    def startedConnecting(self, connector):
+        print ('Started to connect.')
+
+    def buildProtocol(self, addr):
+        print ('Connected.')
+        print ('Resetting reconnection delay')
+        
+        self.resetDelay()
+        client = Client(self.window)
+        self.window.connection = client
+        return client
+
+    def clientConnectionLost(self, connector, reason):
+        #self.window.display_line(' Lost connection. Reason:' + str(reason))
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+
+    def clientConnectionFailed(self, connector, reason):
+        #self.window.display_line( 'Connection failed. Reason:' + str(reason))
+        ReconnectingClientFactory.clientConnectionFailed(self, connector,
+                                                         reason)
+
 if __name__ == '__main__':
     window = Window()
     tksupport.install(window.root)
+    reactor.connectTCP("127.0.0.1", 49500, CFactory(window))
     reactor.run()
