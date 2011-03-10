@@ -96,6 +96,9 @@ class Window:
         self.clap   = PhotoImage(file="clap.gif")
         self.palm   = PhotoImage(file="palm.gif")
         self.wiggle = PhotoImage(file="wiggle.gif")
+        self.knife = PhotoImage(file="knife.gif")
+        self.antispell = PhotoImage(file="antispell.gif")
+        self.unknown = PhotoImage(file="unknown.gif")
         self.empty  = PhotoImage(file="empty.gif")
         
         
@@ -197,7 +200,12 @@ class Window:
             print dir(a)
             self.textarea.delete(a,b)
         '''  
-        self.text.config(state=DISABLED)   
+        self.text.config(state=DISABLED) 
+        
+    def selected(self,item):
+        pass
+        #This function should display and make sure the player can't select invalid combinations.
+        
 class Player:
     def __init__(self,name,window):
         self.name = name
@@ -233,20 +241,19 @@ class Player:
             l = self.historyLabels[-i]
             
     def left_click(self,event): 
-        print "LEFT CLICK"
-    
+        self.window.select = "left"
+        ActionDialog(self.window.root,self.window,event.x_root,event.y_root,event.x,event.y)
+        
     def right_click(self,event):
         print "RIGHT CLICK"
-        print event
-        print dir(event)
-        print event.x,event.y
-        print event.x_root,event.y_root
+        self.window.select = 'right'
         ActionDialog(self.window.root,self.window,event.x_root,event.y_root,event.x,event.y)
 
 
 class ActionDialog(Toplevel):
     def __init__(self,parent,window,x_root,y_root,x,y):
         Toplevel.__init__(self, parent)
+        self.window = window
         #self.transient(parent)
         self.overrideredirect(1)
         self.geometry("+%d+%d" % (x_root-x,
@@ -263,7 +270,7 @@ class ActionDialog(Toplevel):
         r1c0 = Label(self.body,image=window.wave)
         r1c1 = Label(self.body,image=window.clap)
         r1c2 = Label(self.body,image=window.snap)
-        r1c3 = Label(self.body,image=window.empty)
+        r1c3 = Label(self.body,image=window.knife)
         
         r0c0.grid(row=0,column=0)
         r0c1.grid(row=0,column=1)
@@ -274,12 +281,27 @@ class ActionDialog(Toplevel):
         r1c2.grid(row=1,column=2)
         r1c3.grid(row=1,column=3)
         
+        r0c0.bind("<Button-1">,self.selectEmpty)
+        r0c1.bind("<Button-1">,self.selectPalm)
+        r0c2.bind("<Button-1">,self.selectDigit)
+        r0c3.bind("<Button-1">,self.selectWiggle)
         
+        r1c0.bind("<Button-1">,self.selectWave)
+        r1c1.bind("<Button-1">,self.selectClap)
+        r1c2.bind("<Button-1">,self.selectSnap)
+        r1c3.bind("<Button-1">,self.selectKnife)
+        
+        
+    def selectEmpty(self): self.window.selected('empty'); self.destroy()
+    def selectPalm(self): pass
+    def selectDigit(self): pass
+    def selectWiggle(self): pass
 
-    def buttonCallback(self):
-        print "Exit time."
-        self.parent.quit()
-        
+    def selectWave(self): pass
+    def selectClap(self): pass
+    def selectSnap(self): pass
+    def selectKnife(self): pass
+
 class Client(LineReceiver):
     def __init__(self,window):
         self.window   = window
