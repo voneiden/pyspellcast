@@ -40,10 +40,13 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
 from ScrolledText import ScrolledText
 
-import json
+import json, time, sys, os
 
 class Window:
     def __init__(self):
+        
+        self.nickname = "Matti"
+        
         
         ''' Create the base window '''
         self.root = Tk()
@@ -85,10 +88,7 @@ class Window:
         self.list = Listbox(self.frame,height=10,width=40,font="courier")
         self.list.grid(row=2,column=1,columnspan=8,sticky=N+S+W+E)
         
-        self.list.insert(END, "Matti          15hp")
-        self.list.insert(END, "Pietu          15hp")
-        self.list.insert(END, "Richard         1hp")
-        
+       
         ''' Loading the icons '''
         self.wave   = PhotoImage(file="wave.gif")
         self.digit  = PhotoImage(file="digit.gif")
@@ -103,10 +103,10 @@ class Window:
         self.players = {}
     
     
-        myplayer = Player("Matti",self)
-        pietu = Player("Pietu",self)
-        samu = Player("Richard",self)
-        self.sortPlayers()
+        #myplayer = Player("Matti",self)
+        #pietu = Player("Pietu",self)
+        #samu = Player("Richard",self)
+        #self.sortPlayers()
         '''
         player = LabelFrame(self.frame, text="White Mage", background="white")
         player.grid(row=0,column=1,columnspan=2,padx=5,pady=0)
@@ -140,6 +140,16 @@ class Window:
         self.players = {'White mage':0,'Black mage':0}
         
     def updatePlayers(self,players):
+        for player,history in players:
+            if player not in self.players.keys():
+                self.players[player] = Player(player,self)
+
+            self.players[player].updateHistory(history)
+        
+        self.sortPlayers()
+        # Todo, remove nonexisting players..
+        
+    def updatePlayerFrames(self):
         # TODO: FIIXIXIXIXIXIIXIXXIIXII
         playerFrames = self.playerFrames[:]
         self.playerFrames = []
@@ -150,11 +160,44 @@ class Window:
                 
             else:
                 self.playerFrames.append(frame)
+            #TODO: remove nonexisting players
     def stop(self):
         self.root.destroy()
         reactor.stop()
         sys.exit(1)
         
+    def display_line(self,text,timestamp=None):
+        print "Display",text
+        if not timestamp: timestamp = time.time()
+        print "scroll1:",self.text.yview()
+        if self.text.yview()[1] == 1.0: scroll = True
+        else: scroll = False
+        
+        self.text.config(state=NORMAL)
+        asciitime = time.strftime('[%H:%M:%S]', time.localtime(float(timestamp)))
+        #if owner: self.textarea.mark_set(start, END);self.textarea.mark_gravity(start,LEFT
+        #text = self.wrap(text)
+        text = [['black',text]]
+        ts = ('grey',"%s "%(asciitime))
+        text.insert(0,ts)
+     
+        for piece in text:
+            self.text.insert(END, piece[1],piece[0])
+        #if owner: self.textarea.mark_set(end, END);self.textarea.mark_gravity(end,LEFT)
+        self.text.insert(END,'\n')
+ 
+        
+        
+        print "scroll2",self.text.yview()
+        if scroll: self.text.yview(END)
+        '''
+        if owner:
+            print "Checking tag.."
+            a,b= self.textarea.tag_ranges(tag)
+            print dir(a)
+            self.textarea.delete(a,b)
+        '''  
+        self.text.config(state=DISABLED)   
 class Player:
     def __init__(self,name,window):
         self.name = name
@@ -166,18 +209,77 @@ class Player:
         self.frame = LabelFrame(self.window.frame,text=self.name,background='white')
         
         self.history = []
+        self.historyLabels = []
         for i in xrange(8):
             left  = Label(self.frame,image=self.window.empty)
             right = Label(self.frame,image=self.window.empty)
             left.grid(row=i,column=0)
             right.grid(row=i,column=1)
-            self.history.append([left,right])
+            self.historyLabels.append([left,right])
+        
+        if self.window.nickname == self.name:
+            left.bind("<Button-1>",   self.left_click)
+            right.bind("<Button-1>",   self.right_click)
             
             
     def remove(self):
         pass
         #grid_remove
+        
+    def updateHistory(self,history):
+        self.history = history[:]
+        for i in xrange(8):
+            h = self.history[-i]
+            l = self.historyLabels[-i]
+            
+    def left_click(self,event): 
+        print "LEFT CLICK"
+    
+    def right_click(self,event):
+        print "RIGHT CLICK"
+        print event
+        print dir(event)
+        print event.x,event.y
+        print event.x_root,event.y_root
+        ActionDialog(self.window.root,self.window,event.x_root,event.y_root,event.x,event.y)
 
+
+class ActionDialog(Toplevel):
+    def __init__(self,parent,window,x_root,y_root,x,y):
+        Toplevel.__init__(self, parent)
+        #self.transient(parent)
+        self.overrideredirect(1)
+        self.geometry("+%d+%d" % (x_root-x,
+                                  y_root-y))
+                                
+        self.body = Frame(self)
+        self.body.pack()
+        
+        r0c0 = Label(self.body,image=window.empty)
+        r0c1 = Label(self.body,image=window.palm)
+        r0c2 = Label(self.body,image=window.digit)
+        r0c3 = Label(self.body,image=window.wiggle)
+        
+        r1c0 = Label(self.body,image=window.wave)
+        r1c1 = Label(self.body,image=window.clap)
+        r1c2 = Label(self.body,image=window.snap)
+        r1c3 = Label(self.body,image=window.empty)
+        
+        r0c0.grid(row=0,column=0)
+        r0c1.grid(row=0,column=1)
+        r0c2.grid(row=0,column=2)
+        r0c3.grid(row=0,column=3)
+        r1c0.grid(row=1,column=0)
+        r1c1.grid(row=1,column=1)
+        r1c2.grid(row=1,column=2)
+        r1c3.grid(row=1,column=3)
+        
+        
+
+    def buttonCallback(self):
+        print "Exit time."
+        self.parent.quit()
+        
 class Client(LineReceiver):
     def __init__(self,window):
         self.window   = window
@@ -185,7 +287,8 @@ class Client(LineReceiver):
 
         
     def connectionMade(self):
-        self.write("handshake pyspellcast 0.1 Matti")
+        self.window.display_line("Connected!")
+        self.write("handshake pyspellcast 0.1 %s"%self.window.nickname)
 
         
         
@@ -203,10 +306,20 @@ class Client(LineReceiver):
             for player in parseplayers:
                 name,history = player.split(':')
                 players.append([name,json.loads(history)])
-            
             print "Player list"
             print players
             self.window.updatePlayers(players)
+            
+        elif hdr == 'updateHealth':
+            lines = " ".join(tok[1:]).split(';')
+            self.window.list.delete(0, END)
+            for line in lines:
+                self.window.list.insert(END, line)
+        
+        
+        elif hdr == 'msg':
+            message = " ".join(tok[1:])
+            self.window.display_line(message)
             
         else:
             print "Unknown packet"

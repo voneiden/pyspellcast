@@ -42,6 +42,7 @@ class Game:
         else:             self.players[player.name] = player
         player.bReady = True
         self.updatePlayers()
+        self.updateHealth()
         
     def updatePlayers(self):
         players = []
@@ -54,6 +55,13 @@ class Game:
         for player in self.players.values():
             player.write('updatePlayers %s'%pbuf)
             
+    def updateHealth(self):
+        pbuf = []
+        for player in self.players.values():
+            pbuf.append("%s%s%i"%(player.name," "*(30-len(player.name)),player.hp))
+            
+        for player in self.players.values():
+            player.write("updateHealth %s"%(";".join(pbuf)))
             
         
     def startGame(self):
@@ -102,6 +110,8 @@ class Player(LineReceiver):
                 if version != '0.1': self.write("Wrong version");self.transport.loseConnection();return
                 self.name = name
                 self.game.addPlayer(self)
+                self.write("msg Welcome to pyspellcast server!")
+                
                 
 
 class PlayerFactory(Factory):
