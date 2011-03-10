@@ -31,6 +31,11 @@
 -- Question handling
 
 
+The client has three stages when playing:
+    - Wait = 0
+    - Send moves = 1
+    - Send answers = 2
+
 '''
 
 
@@ -74,11 +79,15 @@ class Window:
         self.entry = Entry(self.textframe,textvariable=self.input,background="white",foreground="black",
                              state=NORMAL, insertbackground="black")
         self.entry.grid(row=1,column=0,sticky=W+E)
+        self.entry.bind("<Return>",self.enter)
         
         ''' Creating buttons '''
-        
         self.sendbutton = Button(self.frame,text="Send")
         self.spellbutton = Button(self.frame,text="Spells")
+        
+        self.sendbutton.bind('<Button-1>',self.sendmoves)
+        self.spellbutton.bind('<Button-1>',self.showspells)
+        
         
         self.sendbutton.grid(row=1,column=1,sticky=W+E)
         self.spellbutton.grid(row=1,column=2,sticky=W+E)
@@ -90,43 +99,37 @@ class Window:
         
        
         ''' Loading the icons '''
-        self.wave   = PhotoImage(file="wave.gif")
-        self.digit  = PhotoImage(file="digit.gif")
-        self.snap   = PhotoImage(file="snap.gif")
-        self.clap   = PhotoImage(file="clap.gif")
-        self.palm   = PhotoImage(file="palm.gif")
-        self.wiggle = PhotoImage(file="wiggle.gif")
-        self.knife = PhotoImage(file="knife.gif")
-        self.antispell = PhotoImage(file="antispell.gif")
-        self.unknown = PhotoImage(file="unknown.gif")
-        self.empty  = PhotoImage(file="empty.gif")
+        self.waveR   = PhotoImage(file="graphics/wave-right.gif")
+        self.digitR  = PhotoImage(file="graphics/digit-right.gif")
+        self.snapR   = PhotoImage(file="graphics/snap-right.gif")
+        self.clapR   = PhotoImage(file="graphics/clap-right.gif")
+        self.palmR   = PhotoImage(file="graphics/palm-right.gif")
+        self.wiggleR = PhotoImage(file="graphics/wiggle-right.gif")
+        self.knifeR = PhotoImage(file="graphics/knife-right.gif")
+        
+        self.waveL   = PhotoImage(file="graphics/wave-left.gif")
+        self.digitL  = PhotoImage(file="graphics/digit-left.gif")
+        self.snapL   = PhotoImage(file="graphics/snap-left.gif")
+        self.clapL   = PhotoImage(file="graphics/clap-left.gif")
+        self.palmL   = PhotoImage(file="graphics/palm-left.gif")
+        self.wiggleL = PhotoImage(file="graphics/wiggle-left.gif")
+        self.knifeL = PhotoImage(file="graphics/knife-left.gif")
+        
+        self.antispell = PhotoImage(file="graphics/antispell.gif")
+        self.unknown = PhotoImage(file="graphics/unknown.gif")
+        self.empty  = PhotoImage(file="graphics/empty.gif")
+        
+        self.spelllist = PhotoImage(file="graphics/spell-list.gif")
+        
+        
+        self.actiondialog = None
         
         
         ''' Setting up player dictionary, contains player name to player class '''
         self.players = {}
     
     
-        #myplayer = Player("Matti",self)
-        #pietu = Player("Pietu",self)
-        #samu = Player("Richard",self)
-        #self.sortPlayers()
-        '''
-        player = LabelFrame(self.frame, text="White Mage", background="white")
-        player.grid(row=0,column=1,columnspan=2,padx=5,pady=0)
-
-        for y in xrange(2):
-            for i in xrange(8):
-                licon = Label(player,image=self.icon)
-                licon.grid(row=i,column=y,pady=2,padx=2)
-            
-        player = LabelFrame(self.frame, text="Black Mage", background="white")
-        player.grid(row=0,column=3,columnspan=2,padx=5,pady=0)
-
-        for y in xrange(2):
-            for i in xrange(8):
-                licon = Label(player,image=self.icon)
-                licon.grid(row=i,column=y,pady=2,padx=2)
-        '''   
+  
         questions = LabelFrame(self.frame,text="Questions")
         questions.grid(row=4,column=0,columnspan=10,sticky=W+E)
         
@@ -203,8 +206,29 @@ class Window:
         self.text.config(state=DISABLED) 
         
     def selected(self,item):
-        pass
-        #This function should display and make sure the player can't select invalid combinations.
+        myplayer = self.players[self.nickname]
+        if self.select == 'right': myplayer.history[-1][1] = item
+        else:                      myplayer.history[-1][0] = item
+        myplayer.updateHistory()
+       
+    def enter(self,event):
+        data=unicode(self.input.get())
+        if len(data) == 0: return
+        self.input.set("")
+        self.client.write("msg %s"%data)
+        
+    def showspells(self,event):
+        spells = SpellDialog(self.root,self)
+        
+    
+    def sendmoves(self,event):
+        if self.stage == 1:
+            myplayer = self.players[self.nickname] 
+            moves = myplayer.history[-1]
+            self.client.write("moves %s"%(json.dumps(moves)))
+            
+    def setStage(self,stage):
+        self.stage = stage
         
 class Player:
     def __init__(self,name,window):
@@ -234,26 +258,70 @@ class Player:
         pass
         #grid_remove
         
-    def updateHistory(self,history):
-        self.history = history[:]
+    def updateHistory(self,history=None):
+        if history: self.history = history[:]
+        print "Updating history.."
         for i in xrange(8):
+            i = i+1
             h = self.history[-i]
             l = self.historyLabels[-i]
             
+            # We need to lower the values because server uses
+            # also capital letters to analyze double hand movements
+            h0 = h[0].lower()
+            h1 = h[1].lower()
+            if   h0 == ' ': l[0].config(image = self.window.empty)
+            elif h0 == 'p': l[0].config(image = self.window.palmL)
+            elif h0 == 'd': l[0].config(image = self.window.digitL)
+            elif h0 == 'f': l[0].config(image = self.window.wiggleL)
+            elif h0 == 'w': l[0].config(image = self.window.waveL)
+            elif h0 == 'c': l[0].config(image = self.window.clapL)
+            elif h0 == 's': l[0].config(image = self.window.snapL)
+            elif h0 == 'k': l[0].config(image = self.window.knifeL)
+            
+            if   h1 == ' ': l[1].config(image = self.window.empty)
+            elif h1 == 'p': l[1].config(image = self.window.palmR)
+            elif h1 == 'd': l[1].config(image = self.window.digitR)
+            elif h1 == 'f': l[1].config(image = self.window.wiggleR)
+            elif h1 == 'w': l[1].config(image = self.window.waveR)
+            elif h1 == 'c': l[1].config(image = self.window.clapR)
+            elif h1 == 's': l[1].config(image = self.window.snapR)
+            elif h1 == 'k': l[1].config(image = self.window.knifeR)
+            
+            
     def left_click(self,event): 
+        if self.window.actiondialog:
+            self.window.actiondialog.destroy()
+            
         self.window.select = "left"
         ActionDialog(self.window.root,self.window,event.x_root,event.y_root,event.x,event.y)
         
     def right_click(self,event):
+        if self.window.actiondialog:
+            self.window.actiondialog.destroy()
         print "RIGHT CLICK"
         self.window.select = 'right'
         ActionDialog(self.window.root,self.window,event.x_root,event.y_root,event.x,event.y)
 
 
+class SpellDialog(Toplevel):
+    def __init__(self,parent,window):
+        Toplevel.__init__(self, parent)
+        self.window = window
+        self.parent = parent
+        
+        self.body = Frame(self)
+        self.body.pack()
+        
+        self.spells = Label(self.body,image=window.spelllist)
+        self.spells.pack()
+        
+        
 class ActionDialog(Toplevel):
     def __init__(self,parent,window,x_root,y_root,x,y):
         Toplevel.__init__(self, parent)
         self.window = window
+        self.window.actiondialog = self
         #self.transient(parent)
         self.overrideredirect(1)
         self.geometry("+%d+%d" % (x_root-x,
@@ -261,16 +329,26 @@ class ActionDialog(Toplevel):
                                 
         self.body = Frame(self)
         self.body.pack()
-        
-        r0c0 = Label(self.body,image=window.empty)
-        r0c1 = Label(self.body,image=window.palm)
-        r0c2 = Label(self.body,image=window.digit)
-        r0c3 = Label(self.body,image=window.wiggle)
-        
-        r1c0 = Label(self.body,image=window.wave)
-        r1c1 = Label(self.body,image=window.clap)
-        r1c2 = Label(self.body,image=window.snap)
-        r1c3 = Label(self.body,image=window.knife)
+        if self.window.select == 'right':
+            r0c0 = Label(self.body,image=window.empty)
+            r0c1 = Label(self.body,image=window.palmR)
+            r0c2 = Label(self.body,image=window.digitR)
+            r0c3 = Label(self.body,image=window.wiggleR)
+            
+            r1c0 = Label(self.body,image=window.waveR)
+            r1c1 = Label(self.body,image=window.clapR)
+            r1c2 = Label(self.body,image=window.snapR)
+            r1c3 = Label(self.body,image=window.knifeR)
+        else:
+            r0c0 = Label(self.body,image=window.empty)
+            r0c1 = Label(self.body,image=window.palmL)
+            r0c2 = Label(self.body,image=window.digitL)
+            r0c3 = Label(self.body,image=window.wiggleL)
+            
+            r1c0 = Label(self.body,image=window.waveL)
+            r1c1 = Label(self.body,image=window.clapL)
+            r1c2 = Label(self.body,image=window.snapL)
+            r1c3 = Label(self.body,image=window.knifeL)
         
         r0c0.grid(row=0,column=0)
         r0c1.grid(row=0,column=1)
@@ -281,30 +359,31 @@ class ActionDialog(Toplevel):
         r1c2.grid(row=1,column=2)
         r1c3.grid(row=1,column=3)
         
-        r0c0.bind("<Button-1">,self.selectEmpty)
-        r0c1.bind("<Button-1">,self.selectPalm)
-        r0c2.bind("<Button-1">,self.selectDigit)
-        r0c3.bind("<Button-1">,self.selectWiggle)
+        r0c0.bind("<Button-1>",self.selectEmpty)
+        r0c1.bind("<Button-1>",self.selectPalm)
+        r0c2.bind("<Button-1>",self.selectDigit)
+        r0c3.bind("<Button-1>",self.selectWiggle)
         
-        r1c0.bind("<Button-1">,self.selectWave)
-        r1c1.bind("<Button-1">,self.selectClap)
-        r1c2.bind("<Button-1">,self.selectSnap)
-        r1c3.bind("<Button-1">,self.selectKnife)
+        r1c0.bind("<Button-1>",self.selectWave)
+        r1c1.bind("<Button-1>",self.selectClap)
+        r1c2.bind("<Button-1>",self.selectSnap)
+        r1c3.bind("<Button-1>",self.selectKnife)
         
         
-    def selectEmpty(self): self.window.selected('empty'); self.destroy()
-    def selectPalm(self): pass
-    def selectDigit(self): pass
-    def selectWiggle(self): pass
+    def selectEmpty(self,event): self.window.selected(' '); self.destroy()
+    def selectPalm(self,event):  self.window.selected('p'); self.destroy()
+    def selectDigit(self,event): self.window.selected('d'); self.destroy()
+    def selectWiggle(self,event): self.window.selected('f'); self.destroy()
 
-    def selectWave(self): pass
-    def selectClap(self): pass
-    def selectSnap(self): pass
-    def selectKnife(self): pass
+    def selectWave(self,event): self.window.selected('w'); self.destroy()
+    def selectClap(self,event): self.window.selected('c'); self.destroy()
+    def selectSnap(self,event): self.window.selected('s'); self.destroy()
+    def selectKnife(self,event): self.window.selected('k'); self.destroy()
 
 class Client(LineReceiver):
     def __init__(self,window):
         self.window   = window
+        self.window.client = self
         #LineReceiver.__init__(self)
 
         
@@ -316,6 +395,7 @@ class Client(LineReceiver):
         
     def lineReceived(self, data):
         data = data.decode('utf-8')
+        data = data.strip()
         #print "lineReceived",data
         if len(data) < 2: return
         tok = data.split(' ')
@@ -342,6 +422,14 @@ class Client(LineReceiver):
         elif hdr == 'msg':
             message = " ".join(tok[1:])
             self.window.display_line(message)
+            
+        elif hdr == 'stage':
+            stage = int(tok[1])
+            self.window.setStage(stage)
+            
+        elif hdr == 'questions':
+            questions = " ".join(tok[1:]).split(";")
+            #TODO: construct listbox question ..
             
         else:
             print "Unknown packet"
