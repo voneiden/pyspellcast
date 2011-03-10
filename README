@@ -1,3 +1,21 @@
-pySpellcast woot woot
+==Spellcast==
 
-It's not impossible, why hasn't anyone done a decent remake???
+A game of duelling wizards,
+as seen on http://www.mud.co.uk/richard/spellbnd.htm
+
+Client layout is a rip off of wxSpellcast - a project seemingly 
+abandoned in 2002, which in turn had they layout ripped off from
+the original X11 game Spellcast.. I don't know, the last update 
+was in 2001.
+
+All in all, this is now a work in progress, I'm not good at finishing
+projects, so if anybody wants to contribute, you're most welcome. I
+personally hope that the python source makes it easier for people to 
+get involved, but anyway let's see.
+
+==Current progress==
+Total spells: 42
+Implemented: 0 (0%)
+
+Implemented spells
+- None
